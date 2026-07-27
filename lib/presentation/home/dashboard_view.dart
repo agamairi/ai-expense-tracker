@@ -14,6 +14,7 @@ import 'package:ai_expense_tracker/domain/services/category_colors.dart';
 import 'package:intl/intl.dart';
 
 enum ChartPeriod {
+  today,
   oneWeek,
   oneMonth,
   threeMonths,
@@ -88,6 +89,9 @@ class DashboardViewState extends State<DashboardView> {
     final now = DateTime.now();
     DateTime? startDate;
     switch (_selectedPeriod) {
+      case ChartPeriod.today:
+        startDate = DateTime(now.year, now.month, now.day);
+        break;
       case ChartPeriod.oneWeek:
         startDate = now.subtract(const Duration(days: 7));
         break;
@@ -108,7 +112,33 @@ class DashboardViewState extends State<DashboardView> {
     if (startDate == null) {
       return _approvedTransactions;
     }
-    return _approvedTransactions.where((t) => t.timestamp.isAfter(startDate!)).toList();
+    final start = startDate;
+    return _approvedTransactions.where((t) => !t.timestamp.isBefore(start)).toList();
+  }
+
+  /// Returns a bucket key for the given timestamp.
+  /// For [ChartPeriod.today], buckets by hour: "YYYY-MM-DD-HH".
+  /// For all other periods, buckets by day: "YYYY-MM-DD".
+  String _bucketKey(DateTime ts) {
+    if (_selectedPeriod == ChartPeriod.today) {
+      return "${ts.year}-${ts.month.toString().padLeft(2, '0')}-${ts.day.toString().padLeft(2, '0')}-${ts.hour.toString().padLeft(2, '0')}";
+    }
+    return "${ts.year}-${ts.month.toString().padLeft(2, '0')}-${ts.day.toString().padLeft(2, '0')}";
+  }
+
+  /// Returns a human-readable label for a bucket key.
+  /// For [ChartPeriod.today], formats as hour label (e.g. "9AM", "2PM").
+  /// For all other periods, formats as "MMM d" (e.g. "Jul 26").
+  String _bucketLabel(String key) {
+    if (_selectedPeriod == ChartPeriod.today) {
+      // key format: "YYYY-MM-DD-HH"
+      final parts = key.split('-');
+      final hour = int.parse(parts[3]);
+      final dt = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]), hour);
+      return DateFormat('ha').format(dt);
+    }
+    final dt = DateTime.parse(key);
+    return DateFormat('MMM d').format(dt);
   }
 
   double get _netCashflow {
@@ -124,22 +154,20 @@ class DashboardViewState extends State<DashboardView> {
   List<FlSpot> _getChartSpots() {
     if (_filteredTransactions.isEmpty) return [const FlSpot(0, 0)];
     
-    // Group by day string like "YYYY-MM-DD"
-    Map<String, double> dayTotals = {};
+    Map<String, double> bucketTotals = {};
     for (final tx in _filteredTransactions) {
-      final key = "${tx.timestamp.year}-${tx.timestamp.month.toString().padLeft(2, '0')}-${tx.timestamp.day.toString().padLeft(2, '0')}";
+      final key = _bucketKey(tx.timestamp);
       final amount = tx.type == TransactionType.credit ? tx.amount : -tx.amount;
-      dayTotals[key] = (dayTotals[key] ?? 0) + amount;
+      bucketTotals[key] = (bucketTotals[key] ?? 0) + amount;
     }
 
-    // Sort the keys chronologically
-    final sortedKeys = dayTotals.keys.toList()..sort();
+    final sortedKeys = bucketTotals.keys.toList()..sort();
     
     List<FlSpot> spots = [const FlSpot(0, 0)];
     double cumulative = 0;
     
     for (int i = 0; i < sortedKeys.length; i++) {
-      cumulative += dayTotals[sortedKeys[i]]!;
+      cumulative += bucketTotals[sortedKeys[i]]!;
       spots.add(FlSpot((i + 1).toDouble(), cumulative));
     }
     
@@ -282,6 +310,7 @@ class DashboardViewState extends State<DashboardView> {
           final isSelected = _selectedPeriod == period;
           String label = "";
           switch (period) {
+            case ChartPeriod.today: label = "1D"; break;
             case ChartPeriod.oneWeek: label = "1W"; break;
             case ChartPeriod.oneMonth: label = "1M"; break;
             case ChartPeriod.threeMonths: label = "3M"; break;
@@ -328,6 +357,7 @@ class DashboardViewState extends State<DashboardView> {
 
     String defaultLabel = "";
     switch (_selectedPeriod) {
+      case ChartPeriod.today: defaultLabel = "TODAY'S CASHFLOW"; break;
       case ChartPeriod.oneWeek: defaultLabel = "1W CASHFLOW"; break;
       case ChartPeriod.oneMonth: defaultLabel = "1M CASHFLOW"; break;
       case ChartPeriod.threeMonths: defaultLabel = "3M CASHFLOW"; break;
@@ -618,33 +648,28 @@ class DashboardViewState extends State<DashboardView> {
       for (final tx in _filteredTransactions) {
         if (tx.type != TransactionType.debit) continue;
         if (_compareCategories.contains(tx.category)) {
-          final key = "${tx.timestamp.year}-${tx.timestamp.month.toString().padLeft(2, '0')}-${tx.timestamp.day.toString().padLeft(2, '0')}";
-          allKeys.add(key);
+          allKeys.add(_bucketKey(tx.timestamp));
         }
       }
       final sortedKeys = allKeys.toList()..sort();
       for (final key in sortedKeys) {
-        final dt = DateTime.parse(key);
-        _chartXLabels.add(DateFormat('MMM d').format(dt));
+        _chartXLabels.add(_bucketLabel(key));
       }
     } else {
       Set<String> allKeys = {};
       for (final tx in _filteredTransactions) {
-        final key = "${tx.timestamp.year}-${tx.timestamp.month.toString().padLeft(2, '0')}-${tx.timestamp.day.toString().padLeft(2, '0')}";
-        allKeys.add(key);
+        allKeys.add(_bucketKey(tx.timestamp));
       }
       final sortedKeys = allKeys.toList()..sort();
       
       if (_selectedChartType != ChartType.bar && sortedKeys.isNotEmpty) {
-        final firstDt = DateTime.parse(sortedKeys.first);
-        _chartXLabels.add(DateFormat('MMM d').format(firstDt));
+        _chartXLabels.add(_bucketLabel(sortedKeys.first));
       } else if (_selectedChartType == ChartType.bar && sortedKeys.length == 1) {
         _chartXLabels.add('');
       }
       
       for (final key in sortedKeys) {
-        final dt = DateTime.parse(key);
-        _chartXLabels.add(DateFormat('MMM d').format(dt));
+        _chartXLabels.add(_bucketLabel(key));
       }
     }
   }
@@ -755,7 +780,7 @@ class DashboardViewState extends State<DashboardView> {
       for (final tx in _filteredTransactions) {
         if (tx.type != TransactionType.debit) continue;
         if (_compareCategories.contains(tx.category)) {
-          final key = "${tx.timestamp.year}-${tx.timestamp.month.toString().padLeft(2, '0')}-${tx.timestamp.day.toString().padLeft(2, '0')}";
+          final key = _bucketKey(tx.timestamp);
           catTotals[tx.category]![key] = (catTotals[tx.category]![key] ?? 0) + tx.amount;
           allKeys.add(key);
         }
@@ -768,6 +793,10 @@ class DashboardViewState extends State<DashboardView> {
         List<FlSpot> spots = [];
         if (sortedKeys.isEmpty) {
           spots = [const FlSpot(0, 0)];
+        } else if (sortedKeys.length == 1) {
+          // Pad with a baseline zero point so the line chart doesn't degenerate
+          spots.add(const FlSpot(0, 0));
+          spots.add(FlSpot(1, catTotals[cat]![sortedKeys[0]] ?? 0));
         } else {
           for (int i = 0; i < sortedKeys.length; i++) {
             final key = sortedKeys[i];
@@ -834,7 +863,7 @@ class DashboardViewState extends State<DashboardView> {
       for (final tx in _filteredTransactions) {
         if (tx.type != TransactionType.debit) continue;
         if (_compareCategories.contains(tx.category)) {
-          final key = "${tx.timestamp.year}-${tx.timestamp.month.toString().padLeft(2, '0')}-${tx.timestamp.day.toString().padLeft(2, '0')}";
+          final key = _bucketKey(tx.timestamp);
           catTotals[tx.category]![key] = (catTotals[tx.category]![key] ?? 0) + tx.amount;
           allKeys.add(key);
         }
@@ -849,6 +878,28 @@ class DashboardViewState extends State<DashboardView> {
         barWidth = 12.0 / _compareCategories.length;
         if (barWidth < 2) barWidth = 2;
         barsSpace = 2.0;
+      }
+
+      // Pad with a transparent zero-value group when only 1 bucket to avoid degenerate bar rendering
+      if (sortedKeys.length == 1) {
+        List<BarChartRodData> zeroRods = [];
+        for (final _ in _compareCategories) {
+          zeroRods.add(
+            BarChartRodData(
+              toY: 0,
+              color: Colors.transparent,
+              width: barWidth,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4), bottom: Radius.circular(4)),
+            ),
+          );
+        }
+        groups.add(
+          BarChartGroupData(
+            x: 0,
+            barsSpace: barsSpace,
+            barRods: zeroRods,
+          ),
+        );
       }
       
       for (int i = 0; i < sortedKeys.length; i++) {
@@ -869,7 +920,7 @@ class DashboardViewState extends State<DashboardView> {
         
         groups.add(
           BarChartGroupData(
-            x: i,
+            x: sortedKeys.length == 1 ? i + 1 : i,
             barsSpace: barsSpace,
             barRods: rods,
           ),
@@ -878,16 +929,14 @@ class DashboardViewState extends State<DashboardView> {
       return groups;
     }
 
-    // Group by day string like "YYYY-MM-DD"
-    Map<String, double> dayTotals = {};
+    Map<String, double> bucketTotals = {};
     for (final tx in _filteredTransactions) {
-      final key = "${tx.timestamp.year}-${tx.timestamp.month.toString().padLeft(2, '0')}-${tx.timestamp.day.toString().padLeft(2, '0')}";
+      final key = _bucketKey(tx.timestamp);
       final amount = tx.type == TransactionType.credit ? tx.amount : -tx.amount;
-      dayTotals[key] = (dayTotals[key] ?? 0) + amount;
+      bucketTotals[key] = (bucketTotals[key] ?? 0) + amount;
     }
 
-    // Sort the keys chronologically
-    final sortedKeys = dayTotals.keys.toList()..sort();
+    final sortedKeys = bucketTotals.keys.toList()..sort();
     
     List<BarChartGroupData> groups = [];
     
@@ -908,7 +957,7 @@ class DashboardViewState extends State<DashboardView> {
     
     for (int i = 0; i < sortedKeys.length; i++) {
       final key = sortedKeys[i];
-      final net = dayTotals[key]!;
+      final net = bucketTotals[key]!;
       final isPositive = net >= 0;
       
       groups.add(

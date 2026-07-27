@@ -38,6 +38,7 @@ class _SettingsViewState extends State<SettingsView> with WidgetsBindingObserver
   
   List<Map<String, String>> _installedApps = [];
   bool _isLoadingApps = true;
+  bool _appsLoadFailed = false;
   String _appSearchQuery = '';
   final TextEditingController _appSearchController = TextEditingController();
   
@@ -110,6 +111,12 @@ class _SettingsViewState extends State<SettingsView> with WidgetsBindingObserver
   }
 
   Future<void> _loadSettings() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingApps = true;
+        _appsLoadFailed = false;
+      });
+    }
     try {
       final bool isEnabled = await invokeMethodWithRetry(platform, 'isNotificationListenerEnabled');
       final bool isPostGranted = await invokeMethodWithRetry(platform, 'isPostNotificationsGranted');
@@ -137,23 +144,35 @@ class _SettingsViewState extends State<SettingsView> with WidgetsBindingObserver
         }
       }
 
-      setState(() {
-        _isNotificationListenerEnabled = isEnabled;
-        _isPostNotificationsGranted = isPostGranted;
-        _isIgnoringBatteryOptimizations = isIgnoring;
-        _whitelist = whitelistDynamic.cast<String>().toSet();
-        _regexController.text = regex;
-        _installedApps = apps;
-        _isLoadingApps = false;
-        
-        _selectedKeywords = selectedKw;
-        for (var kw in extraKw) {
-          if (!_commonKeywords.contains(kw)) _commonKeywords.add(kw);
-        }
-        _customRegexNote = customNote;
-      });
-    } on PlatformException catch (e) {
-      debugPrint("Failed to load settings: '${e.message}'.");
+      if (mounted) {
+        setState(() {
+          _isNotificationListenerEnabled = isEnabled;
+          _isPostNotificationsGranted = isPostGranted;
+          _isIgnoringBatteryOptimizations = isIgnoring;
+          _whitelist = whitelistDynamic.cast<String>().toSet();
+          _regexController.text = regex;
+          _installedApps = apps;
+          
+          _selectedKeywords = selectedKw;
+          for (var kw in extraKw) {
+            if (!_commonKeywords.contains(kw)) _commonKeywords.add(kw);
+          }
+          _customRegexNote = customNote;
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to load settings: '$e'.");
+      if (mounted) {
+        setState(() {
+          _appsLoadFailed = true;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingApps = false;
+        });
+      }
     }
   }
 
@@ -587,6 +606,19 @@ class _SettingsViewState extends State<SettingsView> with WidgetsBindingObserver
                     const SizedBox(height: 16),
                     if (_isLoadingApps)
                       const Center(child: CircularProgressIndicator())
+                    else if (_appsLoadFailed && _installedApps.isEmpty)
+                      Center(
+                        child: Column(
+                          children: [
+                            const Text("Failed to load installed apps.", style: TextStyle(color: Colors.red)),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _loadSettings,
+                              child: const Text("Retry"),
+                            ),
+                          ],
+                        ),
+                      )
                     else ...[
                       TextField(
                         controller: _appSearchController,
@@ -600,6 +632,13 @@ class _SettingsViewState extends State<SettingsView> with WidgetsBindingObserver
                       const SizedBox(height: 8),
                       Builder(builder: (context) {
                         final filtered = _installedApps.where((app) => app['label']!.toLowerCase().contains(_appSearchQuery.toLowerCase())).toList();
+                        filtered.sort((a, b) {
+                          final aWhitelisted = _whitelist.contains(a['packageName']);
+                          final bWhitelisted = _whitelist.contains(b['packageName']);
+                          if (aWhitelisted && !bWhitelisted) return -1;
+                          if (!aWhitelisted && bWhitelisted) return 1;
+                          return a['label']!.toLowerCase().compareTo(b['label']!.toLowerCase());
+                        });
                         return Container(
                           constraints: const BoxConstraints(maxHeight: 300),
                           child: ListView.builder(

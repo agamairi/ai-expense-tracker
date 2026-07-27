@@ -49,3 +49,8 @@ app.*.map.json
 /AGENTS.md
 /.mcp.json
 /mcp/agy-connector/
+
+# Local drafts / generated marketing assets — not part of the app
+/LINKEDIN_POST_DRAFT.md
+/brag-output/
+/brag-output-*/

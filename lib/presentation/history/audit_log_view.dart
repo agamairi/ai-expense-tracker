@@ -429,6 +429,33 @@ class _AuditLogViewState extends State<AuditLogView> with WidgetsBindingObserver
                     _loadData();
                   },
                 ),
+              if (isPending) ...[
+                IconButton(
+                  icon: const Icon(Icons.check_circle_outline, size: 20),
+                  color: Colors.green,
+                  onPressed: () async {
+                    await _repo.updateTransaction(tx.copyWith(status: TransactionStatus.approved));
+                    _loadData();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.cancel_outlined, size: 20),
+                  color: Colors.red,
+                  onPressed: () async {
+                    await _repo.updateTransaction(tx.copyWith(status: TransactionStatus.rejected));
+                    _loadData();
+                  },
+                ),
+              ],
+              if (isApproved)
+                IconButton(
+                  icon: const Icon(Icons.cancel_outlined, size: 20),
+                  color: Colors.red,
+                  onPressed: () async {
+                    await _repo.updateTransaction(tx.copyWith(status: TransactionStatus.rejected));
+                    _loadData();
+                  },
+                ),
               IconButton(
                 icon: const Icon(Icons.edit, size: 20),
                 color: Colors.grey[500],
