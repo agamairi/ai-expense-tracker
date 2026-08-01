@@ -12,6 +12,14 @@ class Transactions extends Table {
   IntColumn get accountId => integer()();
   TextColumn get rawText => text()();
   IntColumn get status => intEnum<TransactionStatus>()();
+  IntColumn get customCategoryId => integer().nullable()();
+}
+
+class CustomCategories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  IntColumn get colorValue => integer()();
+  IntColumn get iconCodePoint => integer()();
 }
 
 class AppRules extends Table {

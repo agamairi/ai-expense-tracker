@@ -21,6 +21,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       accountId: driftModel.accountId,
       rawText: driftModel.rawText,
       status: driftModel.status,
+      customCategoryId: driftModel.customCategoryId,
     );
   }
 
@@ -57,6 +58,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
         accountId: Value(transaction.accountId),
         rawText: Value(transaction.rawText),
         status: Value(transaction.status),
+        customCategoryId: Value(transaction.customCategoryId),
       ),
     );
   }
@@ -75,6 +77,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
         accountId: transaction.accountId,
         rawText: transaction.rawText,
         status: transaction.status,
+        customCategoryId: transaction.customCategoryId,
       ),
     );
   }

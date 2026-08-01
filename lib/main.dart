@@ -16,8 +16,11 @@ import 'package:ai_expense_tracker/presentation/accounts/manage_accounts_view.da
 import 'package:ai_expense_tracker/presentation/budgets/manage_budgets_view.dart';
 import 'package:ai_expense_tracker/presentation/help/help_view.dart';
 import 'package:ai_expense_tracker/presentation/rules/manage_rules_view.dart';
+import 'package:ai_expense_tracker/presentation/categories/manage_categories_view.dart';
 import 'package:ai_expense_tracker/domain/models/enums.dart';
 import 'package:ai_expense_tracker/core/platform_channel_retry.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:ai_expense_tracker/domain/services/update_check_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -80,7 +83,37 @@ class _AiExpenseTrackerAppState extends State<AiExpenseTrackerApp> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkColdStartIntent();
+      _checkPassiveUpdate();
     });
+  }
+
+  Future<void> _checkPassiveUpdate() async {
+    try {
+      final service = UpdateCheckService();
+      final updateInfo = await service.checkForUpdate();
+      if (updateInfo != null) {
+        final lastNotified = await service.getLastNotifiedVersion();
+        if (lastNotified != updateInfo.latestVersion) {
+          final context = navigatorKey.currentState?.context;
+          if (context != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('BAInk v${updateInfo.latestVersion} is available'),
+                action: SnackBarAction(
+                  label: 'View',
+                  onPressed: () {
+                    launchUrl(Uri.parse(updateInfo.releaseUrl), mode: LaunchMode.externalApplication);
+                  },
+                ),
+              ),
+            );
+            await service.setLastNotifiedVersion(updateInfo.latestVersion);
+          }
+        }
+      }
+    } catch (_) {
+      // Ignored for best-effort
+    }
   }
 
   Future<void> _checkColdStartIntent() async {
@@ -151,6 +184,7 @@ class _AiExpenseTrackerAppState extends State<AiExpenseTrackerApp> {
             '/accounts': (context) => const ManageAccountsView(),
             '/budgets': (context) => const ManageBudgetsView(),
             '/rules': (context) => const ManageRulesView(),
+            '/categories': (context) => const ManageCategoriesView(),
             '/help': (context) => const HelpView(),
           },
         );

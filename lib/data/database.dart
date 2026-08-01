@@ -10,7 +10,7 @@ import 'package:ai_expense_tracker/domain/models/enums.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Transactions, AppRules, Accounts, Budgets])
+@DriftDatabase(tables: [Transactions, AppRules, Accounts, Budgets, CustomCategories])
 class AppDatabase extends _$AppDatabase {
   static final AppDatabase instance = AppDatabase._internal();
   AppDatabase._internal() : super(_openConnection());
@@ -18,7 +18,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -35,6 +35,10 @@ class AppDatabase extends _$AppDatabase {
         onUpgrade: (Migrator m, int from, int to) async {
           if (from < 2) {
             await m.createTable(budgets);
+          }
+          if (from < 3) {
+            await m.createTable(customCategories);
+            await m.addColumn(transactions, transactions.customCategoryId);
           }
         },
       );

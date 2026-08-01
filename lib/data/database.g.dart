@@ -117,6 +117,17 @@ class $TransactionsTable extends Transactions
         type: DriftSqlType.int,
         requiredDuringInsert: true,
       ).withConverter<TransactionStatus>($TransactionsTable.$converterstatus);
+  static const VerificationMeta _customCategoryIdMeta = const VerificationMeta(
+    'customCategoryId',
+  );
+  @override
+  late final GeneratedColumn<int> customCategoryId = GeneratedColumn<int>(
+    'custom_category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -129,6 +140,7 @@ class $TransactionsTable extends Transactions
     accountId,
     rawText,
     status,
+    customCategoryId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -193,6 +205,15 @@ class $TransactionsTable extends Transactions
     } else if (isInserting) {
       context.missing(_rawTextMeta);
     }
+    if (data.containsKey('custom_category_id')) {
+      context.handle(
+        _customCategoryIdMeta,
+        customCategoryId.isAcceptableOrUnknown(
+          data['custom_category_id']!,
+          _customCategoryIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -248,6 +269,10 @@ class $TransactionsTable extends Transactions
           data['${effectivePrefix}status'],
         )!,
       ),
+      customCategoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}custom_category_id'],
+      ),
     );
   }
 
@@ -275,6 +300,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final int accountId;
   final String rawText;
   final TransactionStatus status;
+  final int? customCategoryId;
   const Transaction({
     required this.id,
     required this.timestamp,
@@ -286,6 +312,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     required this.accountId,
     required this.rawText,
     required this.status,
+    this.customCategoryId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -312,6 +339,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
         $TransactionsTable.$converterstatus.toSql(status),
       );
     }
+    if (!nullToAbsent || customCategoryId != null) {
+      map['custom_category_id'] = Variable<int>(customCategoryId);
+    }
     return map;
   }
 
@@ -327,6 +357,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       accountId: Value(accountId),
       rawText: Value(rawText),
       status: Value(status),
+      customCategoryId: customCategoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customCategoryId),
     );
   }
 
@@ -352,6 +385,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       status: $TransactionsTable.$converterstatus.fromJson(
         serializer.fromJson<int>(json['status']),
       ),
+      customCategoryId: serializer.fromJson<int?>(json['customCategoryId']),
     );
   }
   @override
@@ -374,6 +408,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'status': serializer.toJson<int>(
         $TransactionsTable.$converterstatus.toJson(status),
       ),
+      'customCategoryId': serializer.toJson<int?>(customCategoryId),
     };
   }
 
@@ -388,6 +423,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     int? accountId,
     String? rawText,
     TransactionStatus? status,
+    Value<int?> customCategoryId = const Value.absent(),
   }) => Transaction(
     id: id ?? this.id,
     timestamp: timestamp ?? this.timestamp,
@@ -399,6 +435,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     accountId: accountId ?? this.accountId,
     rawText: rawText ?? this.rawText,
     status: status ?? this.status,
+    customCategoryId: customCategoryId.present
+        ? customCategoryId.value
+        : this.customCategoryId,
   );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -412,6 +451,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       rawText: data.rawText.present ? data.rawText.value : this.rawText,
       status: data.status.present ? data.status.value : this.status,
+      customCategoryId: data.customCategoryId.present
+          ? data.customCategoryId.value
+          : this.customCategoryId,
     );
   }
 
@@ -427,7 +469,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('category: $category, ')
           ..write('accountId: $accountId, ')
           ..write('rawText: $rawText, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('customCategoryId: $customCategoryId')
           ..write(')'))
         .toString();
   }
@@ -444,6 +487,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     accountId,
     rawText,
     status,
+    customCategoryId,
   );
   @override
   bool operator ==(Object other) =>
@@ -458,7 +502,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.category == this.category &&
           other.accountId == this.accountId &&
           other.rawText == this.rawText &&
-          other.status == this.status);
+          other.status == this.status &&
+          other.customCategoryId == this.customCategoryId);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -472,6 +517,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<int> accountId;
   final Value<String> rawText;
   final Value<TransactionStatus> status;
+  final Value<int?> customCategoryId;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.timestamp = const Value.absent(),
@@ -483,6 +529,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.accountId = const Value.absent(),
     this.rawText = const Value.absent(),
     this.status = const Value.absent(),
+    this.customCategoryId = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -495,6 +542,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     required int accountId,
     required String rawText,
     required TransactionStatus status,
+    this.customCategoryId = const Value.absent(),
   }) : timestamp = Value(timestamp),
        amount = Value(amount),
        currency = Value(currency),
@@ -515,6 +563,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<int>? accountId,
     Expression<String>? rawText,
     Expression<int>? status,
+    Expression<int>? customCategoryId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -527,6 +576,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (accountId != null) 'account_id': accountId,
       if (rawText != null) 'raw_text': rawText,
       if (status != null) 'status': status,
+      if (customCategoryId != null) 'custom_category_id': customCategoryId,
     });
   }
 
@@ -541,6 +591,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Value<int>? accountId,
     Value<String>? rawText,
     Value<TransactionStatus>? status,
+    Value<int?>? customCategoryId,
   }) {
     return TransactionsCompanion(
       id: id ?? this.id,
@@ -553,6 +604,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       accountId: accountId ?? this.accountId,
       rawText: rawText ?? this.rawText,
       status: status ?? this.status,
+      customCategoryId: customCategoryId ?? this.customCategoryId,
     );
   }
 
@@ -595,6 +647,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
         $TransactionsTable.$converterstatus.toSql(status.value),
       );
     }
+    if (customCategoryId.present) {
+      map['custom_category_id'] = Variable<int>(customCategoryId.value);
+    }
     return map;
   }
 
@@ -610,7 +665,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('category: $category, ')
           ..write('accountId: $accountId, ')
           ..write('rawText: $rawText, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('customCategoryId: $customCategoryId')
           ..write(')'))
         .toString();
   }
@@ -1450,6 +1506,311 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
   }
 }
 
+class $CustomCategoriesTable extends CustomCategories
+    with TableInfo<$CustomCategoriesTable, CustomCategory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CustomCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorValueMeta = const VerificationMeta(
+    'colorValue',
+  );
+  @override
+  late final GeneratedColumn<int> colorValue = GeneratedColumn<int>(
+    'color_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconCodePointMeta = const VerificationMeta(
+    'iconCodePoint',
+  );
+  @override
+  late final GeneratedColumn<int> iconCodePoint = GeneratedColumn<int>(
+    'icon_code_point',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, colorValue, iconCodePoint];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'custom_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CustomCategory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color_value')) {
+      context.handle(
+        _colorValueMeta,
+        colorValue.isAcceptableOrUnknown(data['color_value']!, _colorValueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorValueMeta);
+    }
+    if (data.containsKey('icon_code_point')) {
+      context.handle(
+        _iconCodePointMeta,
+        iconCodePoint.isAcceptableOrUnknown(
+          data['icon_code_point']!,
+          _iconCodePointMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_iconCodePointMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CustomCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CustomCategory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      colorValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color_value'],
+      )!,
+      iconCodePoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}icon_code_point'],
+      )!,
+    );
+  }
+
+  @override
+  $CustomCategoriesTable createAlias(String alias) {
+    return $CustomCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class CustomCategory extends DataClass implements Insertable<CustomCategory> {
+  final int id;
+  final String name;
+  final int colorValue;
+  final int iconCodePoint;
+  const CustomCategory({
+    required this.id,
+    required this.name,
+    required this.colorValue,
+    required this.iconCodePoint,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['color_value'] = Variable<int>(colorValue);
+    map['icon_code_point'] = Variable<int>(iconCodePoint);
+    return map;
+  }
+
+  CustomCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return CustomCategoriesCompanion(
+      id: Value(id),
+      name: Value(name),
+      colorValue: Value(colorValue),
+      iconCodePoint: Value(iconCodePoint),
+    );
+  }
+
+  factory CustomCategory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CustomCategory(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      colorValue: serializer.fromJson<int>(json['colorValue']),
+      iconCodePoint: serializer.fromJson<int>(json['iconCodePoint']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'colorValue': serializer.toJson<int>(colorValue),
+      'iconCodePoint': serializer.toJson<int>(iconCodePoint),
+    };
+  }
+
+  CustomCategory copyWith({
+    int? id,
+    String? name,
+    int? colorValue,
+    int? iconCodePoint,
+  }) => CustomCategory(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    colorValue: colorValue ?? this.colorValue,
+    iconCodePoint: iconCodePoint ?? this.iconCodePoint,
+  );
+  CustomCategory copyWithCompanion(CustomCategoriesCompanion data) {
+    return CustomCategory(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      colorValue: data.colorValue.present
+          ? data.colorValue.value
+          : this.colorValue,
+      iconCodePoint: data.iconCodePoint.present
+          ? data.iconCodePoint.value
+          : this.iconCodePoint,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomCategory(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('colorValue: $colorValue, ')
+          ..write('iconCodePoint: $iconCodePoint')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, colorValue, iconCodePoint);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomCategory &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.colorValue == this.colorValue &&
+          other.iconCodePoint == this.iconCodePoint);
+}
+
+class CustomCategoriesCompanion extends UpdateCompanion<CustomCategory> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int> colorValue;
+  final Value<int> iconCodePoint;
+  const CustomCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.colorValue = const Value.absent(),
+    this.iconCodePoint = const Value.absent(),
+  });
+  CustomCategoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    required int colorValue,
+    required int iconCodePoint,
+  }) : name = Value(name),
+       colorValue = Value(colorValue),
+       iconCodePoint = Value(iconCodePoint);
+  static Insertable<CustomCategory> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? colorValue,
+    Expression<int>? iconCodePoint,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (colorValue != null) 'color_value': colorValue,
+      if (iconCodePoint != null) 'icon_code_point': iconCodePoint,
+    });
+  }
+
+  CustomCategoriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<int>? colorValue,
+    Value<int>? iconCodePoint,
+  }) {
+    return CustomCategoriesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      colorValue: colorValue ?? this.colorValue,
+      iconCodePoint: iconCodePoint ?? this.iconCodePoint,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (colorValue.present) {
+      map['color_value'] = Variable<int>(colorValue.value);
+    }
+    if (iconCodePoint.present) {
+      map['icon_code_point'] = Variable<int>(iconCodePoint.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('colorValue: $colorValue, ')
+          ..write('iconCodePoint: $iconCodePoint')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1457,6 +1818,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AppRulesTable appRules = $AppRulesTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $BudgetsTable budgets = $BudgetsTable(this);
+  late final $CustomCategoriesTable customCategories = $CustomCategoriesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1466,6 +1830,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appRules,
     accounts,
     budgets,
+    customCategories,
   ];
 }
 
@@ -1481,6 +1846,7 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       required int accountId,
       required String rawText,
       required TransactionStatus status,
+      Value<int?> customCategoryId,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
     TransactionsCompanion Function({
@@ -1494,6 +1860,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<int> accountId,
       Value<String> rawText,
       Value<TransactionStatus> status,
+      Value<int?> customCategoryId,
     });
 
 class $$TransactionsTableFilterComposer
@@ -1557,6 +1924,11 @@ class $$TransactionsTableFilterComposer
     column: $table.status,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$TransactionsTableOrderingComposer
@@ -1617,6 +1989,11 @@ class $$TransactionsTableOrderingComposer
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TransactionsTableAnnotationComposer
@@ -1657,6 +2034,11 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<TransactionStatus, int> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
+    builder: (column) => column,
+  );
 }
 
 class $$TransactionsTableTableManager
@@ -1700,6 +2082,7 @@ class $$TransactionsTableTableManager
                 Value<int> accountId = const Value.absent(),
                 Value<String> rawText = const Value.absent(),
                 Value<TransactionStatus> status = const Value.absent(),
+                Value<int?> customCategoryId = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
                 timestamp: timestamp,
@@ -1711,6 +2094,7 @@ class $$TransactionsTableTableManager
                 accountId: accountId,
                 rawText: rawText,
                 status: status,
+                customCategoryId: customCategoryId,
               ),
           createCompanionCallback:
               ({
@@ -1724,6 +2108,7 @@ class $$TransactionsTableTableManager
                 required int accountId,
                 required String rawText,
                 required TransactionStatus status,
+                Value<int?> customCategoryId = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
                 timestamp: timestamp,
@@ -1735,6 +2120,7 @@ class $$TransactionsTableTableManager
                 accountId: accountId,
                 rawText: rawText,
                 status: status,
+                customCategoryId: customCategoryId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2240,6 +2626,191 @@ typedef $$BudgetsTableProcessedTableManager =
       Budget,
       PrefetchHooks Function()
     >;
+typedef $$CustomCategoriesTableCreateCompanionBuilder =
+    CustomCategoriesCompanion Function({
+      Value<int> id,
+      required String name,
+      required int colorValue,
+      required int iconCodePoint,
+    });
+typedef $$CustomCategoriesTableUpdateCompanionBuilder =
+    CustomCategoriesCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<int> colorValue,
+      Value<int> iconCodePoint,
+    });
+
+class $$CustomCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $CustomCategoriesTable> {
+  $$CustomCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get iconCodePoint => $composableBuilder(
+    column: $table.iconCodePoint,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CustomCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CustomCategoriesTable> {
+  $$CustomCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get iconCodePoint => $composableBuilder(
+    column: $table.iconCodePoint,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CustomCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CustomCategoriesTable> {
+  $$CustomCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get iconCodePoint => $composableBuilder(
+    column: $table.iconCodePoint,
+    builder: (column) => column,
+  );
+}
+
+class $$CustomCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CustomCategoriesTable,
+          CustomCategory,
+          $$CustomCategoriesTableFilterComposer,
+          $$CustomCategoriesTableOrderingComposer,
+          $$CustomCategoriesTableAnnotationComposer,
+          $$CustomCategoriesTableCreateCompanionBuilder,
+          $$CustomCategoriesTableUpdateCompanionBuilder,
+          (
+            CustomCategory,
+            BaseReferences<
+              _$AppDatabase,
+              $CustomCategoriesTable,
+              CustomCategory
+            >,
+          ),
+          CustomCategory,
+          PrefetchHooks Function()
+        > {
+  $$CustomCategoriesTableTableManager(
+    _$AppDatabase db,
+    $CustomCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CustomCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CustomCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CustomCategoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> colorValue = const Value.absent(),
+                Value<int> iconCodePoint = const Value.absent(),
+              }) => CustomCategoriesCompanion(
+                id: id,
+                name: name,
+                colorValue: colorValue,
+                iconCodePoint: iconCodePoint,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                required int colorValue,
+                required int iconCodePoint,
+              }) => CustomCategoriesCompanion.insert(
+                id: id,
+                name: name,
+                colorValue: colorValue,
+                iconCodePoint: iconCodePoint,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CustomCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CustomCategoriesTable,
+      CustomCategory,
+      $$CustomCategoriesTableFilterComposer,
+      $$CustomCategoriesTableOrderingComposer,
+      $$CustomCategoriesTableAnnotationComposer,
+      $$CustomCategoriesTableCreateCompanionBuilder,
+      $$CustomCategoriesTableUpdateCompanionBuilder,
+      (
+        CustomCategory,
+        BaseReferences<_$AppDatabase, $CustomCategoriesTable, CustomCategory>,
+      ),
+      CustomCategory,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2252,4 +2823,6 @@ class $AppDatabaseManager {
       $$AccountsTableTableManager(_db, _db.accounts);
   $$BudgetsTableTableManager get budgets =>
       $$BudgetsTableTableManager(_db, _db.budgets);
+  $$CustomCategoriesTableTableManager get customCategories =>
+      $$CustomCategoriesTableTableManager(_db, _db.customCategories);
 }

@@ -11,6 +11,7 @@ class Transaction {
   final int accountId;
   final String rawText;
   final TransactionStatus status;
+  final int? customCategoryId;
 
   const Transaction({
     required this.id,
@@ -23,6 +24,7 @@ class Transaction {
     required this.accountId,
     required this.rawText,
     required this.status,
+    this.customCategoryId,
   });
 
   Transaction copyWith({
@@ -36,6 +38,7 @@ class Transaction {
     int? accountId,
     String? rawText,
     TransactionStatus? status,
+    int? customCategoryId,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -48,6 +51,7 @@ class Transaction {
       accountId: accountId ?? this.accountId,
       rawText: rawText ?? this.rawText,
       status: status ?? this.status,
+      customCategoryId: customCategoryId ?? this.customCategoryId,
     );
   }
 }

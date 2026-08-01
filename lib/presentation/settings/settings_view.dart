@@ -7,6 +7,10 @@ import 'package:ai_expense_tracker/domain/services/chart_preferences_service.dar
 import 'package:ai_expense_tracker/domain/models/enums.dart';
 import 'package:ai_expense_tracker/domain/services/category_colors.dart';
 import 'package:ai_expense_tracker/core/platform_channel_retry.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:ai_expense_tracker/domain/models/update_info.dart';
+import 'package:ai_expense_tracker/domain/services/update_check_service.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -24,6 +28,9 @@ class _SettingsViewState extends State<SettingsView> with WidgetsBindingObserver
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
   bool _isModelReady = false;
+
+  String _appVersion = '';
+  UpdateInfo? _updateInfo;
 
   static const platform = MethodChannel('com.agamairi.ai_expense_tracker/actions');
   
@@ -64,6 +71,26 @@ class _SettingsViewState extends State<SettingsView> with WidgetsBindingObserver
     _loadSettings();
     _checkModelStatus();
     _loadChartPrefs();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = 'Version ${info.version} (${info.buildNumber})';
+        });
+      }
+      final updateInfo = await UpdateCheckService().checkForUpdate();
+      if (updateInfo != null && updateInfo.latestVersion != info.version && mounted) {
+        setState(() {
+          _updateInfo = updateInfo;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load app version: $e');
+    }
   }
 
   Future<void> _loadChartPrefs() async {
@@ -732,8 +759,53 @@ class _SettingsViewState extends State<SettingsView> with WidgetsBindingObserver
                   },
                 ),
               ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: ListTile(
+                  leading: Icon(Icons.category, color: colorScheme.primary),
+                  title: const Text("Manage Categories"),
+                  subtitle: const Text("Add, edit, or remove custom categories", style: TextStyle(color: Colors.grey)),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  onTap: () {
+                    Navigator.pushNamed(context, '/categories');
+                  },
+                ),
+              ),
               const SizedBox(height: 32),
               _buildChartInsightsSection(colorScheme),
+              const SizedBox(height: 32),
+              const Text("About", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      title: const Text("App Version"),
+                      subtitle: Text(_appVersion),
+                    ),
+                    if (_updateInfo != null)
+                      ListTile(
+                        title: Text("Update available: v${_updateInfo!.latestVersion}"),
+                        subtitle: const Text("Tap to download"),
+                        trailing: Icon(Icons.open_in_browser, color: colorScheme.primary),
+                        onTap: () async {
+                          await UpdateCheckService().setLastNotifiedVersion(_updateInfo!.latestVersion);
+                          final uri = Uri.parse(_updateInfo!.releaseUrl);
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        },
+                      ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 32),
               if (kDebugMode) ...[
                 const Text("Developer Tools", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),

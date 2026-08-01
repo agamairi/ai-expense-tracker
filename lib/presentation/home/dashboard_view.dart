@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:ai_expense_tracker/domain/models/transaction.dart' as model;
 import 'package:ai_expense_tracker/domain/models/enums.dart';
-import 'package:ai_expense_tracker/data/database.dart';
+import 'package:ai_expense_tracker/data/database.dart' hide CustomCategory;
 import 'package:ai_expense_tracker/data/repositories/transaction_repository_impl.dart';
 import 'package:ai_expense_tracker/domain/models/account.dart' as model_account;
 import 'package:ai_expense_tracker/data/repositories/account_repository_impl.dart';
@@ -11,6 +11,8 @@ import 'package:ai_expense_tracker/data/repositories/budget_repository_impl.dart
 import 'package:ai_expense_tracker/presentation/history/audit_log_view.dart';
 import 'package:ai_expense_tracker/domain/services/chart_preferences_service.dart';
 import 'package:ai_expense_tracker/domain/services/category_colors.dart';
+import 'package:ai_expense_tracker/domain/models/custom_category.dart';
+import 'package:ai_expense_tracker/data/repositories/custom_category_repository_impl.dart';
 import 'package:intl/intl.dart';
 
 enum ChartPeriod {
@@ -33,10 +35,12 @@ class DashboardViewState extends State<DashboardView> {
   final _repo = TransactionRepositoryImpl(AppDatabase.instance);
   final _accountRepo = AccountRepositoryImpl(AppDatabase.instance);
   final _budgetRepo = BudgetRepositoryImpl(AppDatabase.instance);
+  final _customCategoryRepo = CustomCategoryRepositoryImpl(AppDatabase.instance);
   final _chartPrefs = ChartPreferencesService();
   List<model.Transaction> _transactions = [];
   List<model_account.Account> _accounts = [];
   List<domain_budget.Budget> _budgets = [];
+  List<CustomCategory> _customCategories = [];
   bool _isLoading = true;
   ChartType _selectedChartType = ChartType.area;
   ChartDataMode _dataMode = ChartDataMode.cashflow;
@@ -67,10 +71,12 @@ class DashboardViewState extends State<DashboardView> {
     final cType = await _chartPrefs.getChartType();
     final dMode = await _chartPrefs.getDataMode();
     final compareCats = await _chartPrefs.getCompareCategories();
+    final customCats = await _customCategoryRepo.getAllCustomCategories();
     setState(() {
       _transactions = list;
       _accounts = accountList;
       _budgets = budgetList;
+      _customCategories = customCats;
       _selectedChartType = cType;
       _dataMode = dMode;
       _compareCategories = compareCats;
@@ -1181,13 +1187,19 @@ class DashboardViewState extends State<DashboardView> {
         final spend = spendMap[budget.category] ?? 0.0;
         return Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
-          child: _buildBudgetRow(colorScheme, budget.category, spend, budget.monthlyLimit, _getCategoryColor(colorScheme, budget.category), _getCategoryIcon(budget.category)),
+          child: _buildBudgetRow(colorScheme, budget.category, spend, budget.monthlyLimit, _getCategoryColor(colorScheme, budget.category, null), _getCategoryIcon(budget.category, null)),
         );
       }).toList(),
     );
   }
 
-  Color _getCategoryColor(ColorScheme colorScheme, TransactionCategory cat) {
+  Color _getCategoryColor(ColorScheme colorScheme, TransactionCategory cat, int? customCategoryId) {
+    if (customCategoryId != null) {
+      final custom = _customCategories.where((c) => c.id == customCategoryId).firstOrNull;
+      if (custom != null) {
+        return Color(custom.colorValue);
+      }
+    }
     switch (cat) {
       case TransactionCategory.groceries: return Colors.pink[200]!;
       case TransactionCategory.dining: return Colors.red[400]!;
@@ -1264,7 +1276,8 @@ class DashboardViewState extends State<DashboardView> {
     return Column(
       children: recent.take(4).map((tx) {
         final isPositive = tx.type == TransactionType.credit;
-        final icon = _getCategoryIcon(tx.category);
+        final icon = _getCategoryIcon(tx.category, tx.customCategoryId);
+
         return _buildActivityRow(
           colorScheme, 
           tx.merchant, 
@@ -1278,7 +1291,13 @@ class DashboardViewState extends State<DashboardView> {
     );
   }
 
-  IconData _getCategoryIcon(TransactionCategory category) {
+  IconData _getCategoryIcon(TransactionCategory category, int? customCategoryId) {
+    if (customCategoryId != null) {
+      final custom = _customCategories.where((c) => c.id == customCategoryId).firstOrNull;
+      if (custom != null) {
+        return IconData(custom.iconCodePoint, fontFamily: 'MaterialIcons');
+      }
+    }
     switch (category) {
       case TransactionCategory.groceries: return Icons.local_grocery_store;
       case TransactionCategory.dining: return Icons.restaurant;
@@ -1338,12 +1357,25 @@ class DashboardViewState extends State<DashboardView> {
       );
     }
 
-    Map<TransactionCategory, double> catTotals = {};
+    // Use a custom string key to group by either enum category or custom category id
+    // format: "enum:NAME" or "custom:ID"
+    Map<String, double> groupTotals = {};
+    Map<String, TransactionCategory> groupToEnum = {};
+    Map<String, int?> groupToCustom = {};
+
     for (final tx in debits) {
-      catTotals[tx.category] = (catTotals[tx.category] ?? 0) + tx.amount;
+      String key;
+      if (tx.customCategoryId != null) {
+        key = "custom:${tx.customCategoryId}";
+        groupToCustom[key] = tx.customCategoryId;
+      } else {
+        key = "enum:${tx.category.name}";
+        groupToEnum[key] = tx.category;
+      }
+      groupTotals[key] = (groupTotals[key] ?? 0) + tx.amount;
     }
 
-    final sortedCats = catTotals.keys.toList()..sort((a, b) => catTotals[b]!.compareTo(catTotals[a]!));
+    final sortedKeys = groupTotals.keys.toList()..sort((a, b) => groupTotals[b]!.compareTo(groupTotals[a]!));
     double totalSpend = debits.fold(0.0, (sum, tx) => sum + tx.amount);
 
     return Column(
@@ -1354,11 +1386,18 @@ class DashboardViewState extends State<DashboardView> {
             PieChartData(
               sectionsSpace: 2,
               centerSpaceRadius: 30,
-              sections: sortedCats.map((cat) {
-                final amount = catTotals[cat]!;
+              sections: sortedKeys.map((key) {
+                final amount = groupTotals[key]!;
                 final percent = amount / totalSpend;
+                Color color;
+                if (key.startsWith("custom:")) {
+                  final customId = groupToCustom[key]!;
+                  color = _getCategoryColor(colorScheme, TransactionCategory.other, customId);
+                } else {
+                  color = categoryColor(groupToEnum[key]!);
+                }
                 return PieChartSectionData(
-                  color: categoryColor(cat),
+                  color: color,
                   value: amount,
                   title: percent > 0.05 ? '${(percent * 100).toStringAsFixed(0)}%' : '',
                   radius: 40,
@@ -1373,9 +1412,22 @@ class DashboardViewState extends State<DashboardView> {
           spacing: 16,
           runSpacing: 12,
           alignment: WrapAlignment.center,
-          children: sortedCats.map((cat) {
-            final amount = catTotals[cat]!;
-            final catName = cat.name.replaceFirst(cat.name[0], cat.name[0].toUpperCase());
+          children: sortedKeys.map((key) {
+            final amount = groupTotals[key]!;
+            
+            String name;
+            Color color;
+            if (key.startsWith("custom:")) {
+              final customId = groupToCustom[key]!;
+              final custom = _customCategories.where((c) => c.id == customId).firstOrNull;
+              name = custom?.name ?? "Custom";
+              color = _getCategoryColor(colorScheme, TransactionCategory.other, customId);
+            } else {
+              final cat = groupToEnum[key]!;
+              name = cat.name.replaceFirst(cat.name[0], cat.name[0].toUpperCase());
+              color = categoryColor(cat);
+            }
+
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1383,13 +1435,13 @@ class DashboardViewState extends State<DashboardView> {
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: categoryColor(cat),
+                    color: color,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  "$catName (\$${amount.toStringAsFixed(0)})",
+                  "$name (\$${amount.toStringAsFixed(0)})",
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ],
