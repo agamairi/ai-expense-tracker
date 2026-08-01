@@ -13,6 +13,7 @@ import 'package:ai_expense_tracker/domain/services/chart_preferences_service.dar
 import 'package:ai_expense_tracker/domain/services/category_colors.dart';
 import 'package:ai_expense_tracker/domain/models/custom_category.dart';
 import 'package:ai_expense_tracker/data/repositories/custom_category_repository_impl.dart';
+import 'package:ai_expense_tracker/domain/services/custom_category_icons.dart';
 import 'package:intl/intl.dart';
 
 enum ChartPeriod {
@@ -1295,7 +1296,7 @@ class DashboardViewState extends State<DashboardView> {
     if (customCategoryId != null) {
       final custom = _customCategories.where((c) => c.id == customCategoryId).firstOrNull;
       if (custom != null) {
-        return IconData(custom.iconCodePoint, fontFamily: 'MaterialIcons');
+        return iconForCustomCategory(custom.iconCodePoint);
       }
     }
     switch (category) {

@@ -7,6 +7,7 @@ import 'package:ai_expense_tracker/data/repositories/transaction_repository_impl
 import 'package:ai_expense_tracker/data/repositories/account_repository_impl.dart';
 import 'package:ai_expense_tracker/domain/models/custom_category.dart';
 import 'package:ai_expense_tracker/data/repositories/custom_category_repository_impl.dart';
+import 'package:ai_expense_tracker/domain/services/custom_category_icons.dart';
 
 class EditTransactionView extends StatefulWidget {
   const EditTransactionView({super.key});
@@ -37,12 +38,7 @@ class _EditTransactionViewState extends State<EditTransactionView> {
     Colors.green[400]!, Colors.indigo[300]!, Colors.brown[300]!, Colors.grey[400]!,
   ];
 
-  final List<IconData> _presetIcons = [
-    Icons.category, Icons.shopping_bag, Icons.fastfood, Icons.directions_car,
-    Icons.home, Icons.movie, Icons.favorite, Icons.pets,
-    Icons.flight, Icons.fitness_center, Icons.school, Icons.build,
-    Icons.card_giftcard, Icons.local_hospital, Icons.music_note, Icons.more_horiz,
-  ];
+  final List<IconData> _presetIcons = customCategoryIconPresets;
 
   @override
   void didChangeDependencies() {
@@ -354,7 +350,7 @@ class _EditTransactionViewState extends State<EditTransactionView> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'), size: 16, color: isSelected ? Colors.white : Colors.grey[400]),
+            Icon(iconForCustomCategory(category.iconCodePoint), size: 16, color: isSelected ? Colors.white : Colors.grey[400]),
             const SizedBox(width: 8),
             Text(
               category.name,

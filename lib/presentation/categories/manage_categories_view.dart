@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:ai_expense_tracker/domain/models/custom_category.dart';
 import 'package:ai_expense_tracker/data/database.dart' hide CustomCategory;
 import 'package:ai_expense_tracker/data/repositories/custom_category_repository_impl.dart';
 import 'package:ai_expense_tracker/data/repositories/transaction_repository_impl.dart';
+import 'package:ai_expense_tracker/domain/services/custom_category_icons.dart';
 
 class ManageCategoriesView extends StatefulWidget {
   const ManageCategoriesView({super.key});
@@ -25,12 +25,7 @@ class _ManageCategoriesViewState extends State<ManageCategoriesView> {
     Colors.green[400]!, Colors.indigo[300]!, Colors.brown[300]!, Colors.grey[400]!,
   ];
 
-  final List<IconData> _presetIcons = [
-    Icons.category, Icons.shopping_bag, Icons.fastfood, Icons.directions_car,
-    Icons.home, Icons.movie, Icons.favorite, Icons.pets,
-    Icons.flight, Icons.fitness_center, Icons.school, Icons.build,
-    Icons.card_giftcard, Icons.local_hospital, Icons.music_note, Icons.more_horiz,
-  ];
+  final List<IconData> _presetIcons = customCategoryIconPresets;
 
   @override
   void initState() {
@@ -99,7 +94,7 @@ class _ManageCategoriesViewState extends State<ManageCategoriesView> {
   void _showAddEditDialog([CustomCategory? category]) {
     final nameController = TextEditingController(text: category?.name ?? '');
     Color selectedColor = category != null ? Color(category.colorValue) : _presetColors[0];
-    IconData selectedIcon = category != null ? IconData(category.iconCodePoint, fontFamily: 'MaterialIcons') : _presetIcons[0];
+    IconData selectedIcon = category != null ? iconForCustomCategory(category.iconCodePoint) : _presetIcons[0];
     
     showDialog(
       context: context,
@@ -253,7 +248,7 @@ class _ManageCategoriesViewState extends State<ManageCategoriesView> {
                         color: Color(category.colorValue),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'), color: Colors.white),
+                      child: Icon(iconForCustomCategory(category.iconCodePoint), color: Colors.white),
                     ),
                     title: Text(category.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     trailing: Row(
