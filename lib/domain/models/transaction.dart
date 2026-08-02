@@ -39,6 +39,7 @@ class Transaction {
     String? rawText,
     TransactionStatus? status,
     int? customCategoryId,
+    bool clearCustomCategoryId = false,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -51,7 +52,7 @@ class Transaction {
       accountId: accountId ?? this.accountId,
       rawText: rawText ?? this.rawText,
       status: status ?? this.status,
-      customCategoryId: customCategoryId ?? this.customCategoryId,
+      customCategoryId: clearCustomCategoryId ? null : (customCategoryId ?? this.customCategoryId),
     );
   }
 }

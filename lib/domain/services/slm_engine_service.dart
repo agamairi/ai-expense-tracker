@@ -181,7 +181,17 @@ class SlmEngineService {
     for (var rule in rules) {
       final regex = Regex(rule.merchantRegex, caseSensitive: false);
       if (regex.hasMatch(transaction.merchant)) {
-        return transaction.copyWith(category: rule.assignedCategory);
+        if (rule.customCategoryId != null) {
+          return transaction.copyWith(
+            category: TransactionCategory.other,
+            customCategoryId: rule.customCategoryId,
+          );
+        } else {
+          return transaction.copyWith(
+            category: rule.assignedCategory,
+            clearCustomCategoryId: true,
+          );
+        }
       }
     }
     return transaction;

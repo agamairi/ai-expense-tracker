@@ -26,6 +26,7 @@ class AppRules extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get merchantRegex => text()();
   IntColumn get assignedCategory => intEnum<TransactionCategory>()();
+  IntColumn get customCategoryId => integer().nullable()();
 }
 
 class Accounts extends Table {
@@ -39,4 +40,5 @@ class Budgets extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get category => intEnum<TransactionCategory>()();
   RealColumn get monthlyLimit => real()();
+  IntColumn get customCategoryId => integer().nullable()();
 }

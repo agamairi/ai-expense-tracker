@@ -13,6 +13,7 @@ class AppRuleRepositoryImpl implements AppRuleRepository {
       id: driftModel.id,
       merchantRegex: driftModel.merchantRegex,
       assignedCategory: driftModel.assignedCategory,
+      customCategoryId: driftModel.customCategoryId,
     );
   }
 
@@ -28,6 +29,7 @@ class AppRuleRepositoryImpl implements AppRuleRepository {
       AppRulesCompanion(
         merchantRegex: Value(rule.merchantRegex),
         assignedCategory: Value(rule.assignedCategory),
+        customCategoryId: Value(rule.customCategoryId),
       ),
     );
   }
@@ -44,6 +46,7 @@ class AppRuleRepositoryImpl implements AppRuleRepository {
         id: Value(rule.id),
         merchantRegex: Value(rule.merchantRegex),
         assignedCategory: Value(rule.assignedCategory),
+        customCategoryId: Value(rule.customCategoryId),
       ),
     );
   }

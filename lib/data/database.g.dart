@@ -713,8 +713,24 @@ class $AppRulesTable extends AppRules with TableInfo<$AppRulesTable, AppRule> {
       ).withConverter<TransactionCategory>(
         $AppRulesTable.$converterassignedCategory,
       );
+  static const VerificationMeta _customCategoryIdMeta = const VerificationMeta(
+    'customCategoryId',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, merchantRegex, assignedCategory];
+  late final GeneratedColumn<int> customCategoryId = GeneratedColumn<int>(
+    'custom_category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    merchantRegex,
+    assignedCategory,
+    customCategoryId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -741,6 +757,15 @@ class $AppRulesTable extends AppRules with TableInfo<$AppRulesTable, AppRule> {
     } else if (isInserting) {
       context.missing(_merchantRegexMeta);
     }
+    if (data.containsKey('custom_category_id')) {
+      context.handle(
+        _customCategoryIdMeta,
+        customCategoryId.isAcceptableOrUnknown(
+          data['custom_category_id']!,
+          _customCategoryIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -764,6 +789,10 @@ class $AppRulesTable extends AppRules with TableInfo<$AppRulesTable, AppRule> {
           data['${effectivePrefix}assigned_category'],
         )!,
       ),
+      customCategoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}custom_category_id'],
+      ),
     );
   }
 
@@ -782,10 +811,12 @@ class AppRule extends DataClass implements Insertable<AppRule> {
   final int id;
   final String merchantRegex;
   final TransactionCategory assignedCategory;
+  final int? customCategoryId;
   const AppRule({
     required this.id,
     required this.merchantRegex,
     required this.assignedCategory,
+    this.customCategoryId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -797,6 +828,9 @@ class AppRule extends DataClass implements Insertable<AppRule> {
         $AppRulesTable.$converterassignedCategory.toSql(assignedCategory),
       );
     }
+    if (!nullToAbsent || customCategoryId != null) {
+      map['custom_category_id'] = Variable<int>(customCategoryId);
+    }
     return map;
   }
 
@@ -805,6 +839,9 @@ class AppRule extends DataClass implements Insertable<AppRule> {
       id: Value(id),
       merchantRegex: Value(merchantRegex),
       assignedCategory: Value(assignedCategory),
+      customCategoryId: customCategoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customCategoryId),
     );
   }
 
@@ -819,6 +856,7 @@ class AppRule extends DataClass implements Insertable<AppRule> {
       assignedCategory: $AppRulesTable.$converterassignedCategory.fromJson(
         serializer.fromJson<int>(json['assignedCategory']),
       ),
+      customCategoryId: serializer.fromJson<int?>(json['customCategoryId']),
     );
   }
   @override
@@ -830,6 +868,7 @@ class AppRule extends DataClass implements Insertable<AppRule> {
       'assignedCategory': serializer.toJson<int>(
         $AppRulesTable.$converterassignedCategory.toJson(assignedCategory),
       ),
+      'customCategoryId': serializer.toJson<int?>(customCategoryId),
     };
   }
 
@@ -837,10 +876,14 @@ class AppRule extends DataClass implements Insertable<AppRule> {
     int? id,
     String? merchantRegex,
     TransactionCategory? assignedCategory,
+    Value<int?> customCategoryId = const Value.absent(),
   }) => AppRule(
     id: id ?? this.id,
     merchantRegex: merchantRegex ?? this.merchantRegex,
     assignedCategory: assignedCategory ?? this.assignedCategory,
+    customCategoryId: customCategoryId.present
+        ? customCategoryId.value
+        : this.customCategoryId,
   );
   AppRule copyWithCompanion(AppRulesCompanion data) {
     return AppRule(
@@ -851,6 +894,9 @@ class AppRule extends DataClass implements Insertable<AppRule> {
       assignedCategory: data.assignedCategory.present
           ? data.assignedCategory.value
           : this.assignedCategory,
+      customCategoryId: data.customCategoryId.present
+          ? data.customCategoryId.value
+          : this.customCategoryId,
     );
   }
 
@@ -859,46 +905,54 @@ class AppRule extends DataClass implements Insertable<AppRule> {
     return (StringBuffer('AppRule(')
           ..write('id: $id, ')
           ..write('merchantRegex: $merchantRegex, ')
-          ..write('assignedCategory: $assignedCategory')
+          ..write('assignedCategory: $assignedCategory, ')
+          ..write('customCategoryId: $customCategoryId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, merchantRegex, assignedCategory);
+  int get hashCode =>
+      Object.hash(id, merchantRegex, assignedCategory, customCategoryId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is AppRule &&
           other.id == this.id &&
           other.merchantRegex == this.merchantRegex &&
-          other.assignedCategory == this.assignedCategory);
+          other.assignedCategory == this.assignedCategory &&
+          other.customCategoryId == this.customCategoryId);
 }
 
 class AppRulesCompanion extends UpdateCompanion<AppRule> {
   final Value<int> id;
   final Value<String> merchantRegex;
   final Value<TransactionCategory> assignedCategory;
+  final Value<int?> customCategoryId;
   const AppRulesCompanion({
     this.id = const Value.absent(),
     this.merchantRegex = const Value.absent(),
     this.assignedCategory = const Value.absent(),
+    this.customCategoryId = const Value.absent(),
   });
   AppRulesCompanion.insert({
     this.id = const Value.absent(),
     required String merchantRegex,
     required TransactionCategory assignedCategory,
+    this.customCategoryId = const Value.absent(),
   }) : merchantRegex = Value(merchantRegex),
        assignedCategory = Value(assignedCategory);
   static Insertable<AppRule> custom({
     Expression<int>? id,
     Expression<String>? merchantRegex,
     Expression<int>? assignedCategory,
+    Expression<int>? customCategoryId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (merchantRegex != null) 'merchant_regex': merchantRegex,
       if (assignedCategory != null) 'assigned_category': assignedCategory,
+      if (customCategoryId != null) 'custom_category_id': customCategoryId,
     });
   }
 
@@ -906,11 +960,13 @@ class AppRulesCompanion extends UpdateCompanion<AppRule> {
     Value<int>? id,
     Value<String>? merchantRegex,
     Value<TransactionCategory>? assignedCategory,
+    Value<int?>? customCategoryId,
   }) {
     return AppRulesCompanion(
       id: id ?? this.id,
       merchantRegex: merchantRegex ?? this.merchantRegex,
       assignedCategory: assignedCategory ?? this.assignedCategory,
+      customCategoryId: customCategoryId ?? this.customCategoryId,
     );
   }
 
@@ -928,6 +984,9 @@ class AppRulesCompanion extends UpdateCompanion<AppRule> {
         $AppRulesTable.$converterassignedCategory.toSql(assignedCategory.value),
       );
     }
+    if (customCategoryId.present) {
+      map['custom_category_id'] = Variable<int>(customCategoryId.value);
+    }
     return map;
   }
 
@@ -936,7 +995,8 @@ class AppRulesCompanion extends UpdateCompanion<AppRule> {
     return (StringBuffer('AppRulesCompanion(')
           ..write('id: $id, ')
           ..write('merchantRegex: $merchantRegex, ')
-          ..write('assignedCategory: $assignedCategory')
+          ..write('assignedCategory: $assignedCategory, ')
+          ..write('customCategoryId: $customCategoryId')
           ..write(')'))
         .toString();
   }
@@ -1281,8 +1341,24 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _customCategoryIdMeta = const VerificationMeta(
+    'customCategoryId',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, category, monthlyLimit];
+  late final GeneratedColumn<int> customCategoryId = GeneratedColumn<int>(
+    'custom_category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    category,
+    monthlyLimit,
+    customCategoryId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1309,6 +1385,15 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     } else if (isInserting) {
       context.missing(_monthlyLimitMeta);
     }
+    if (data.containsKey('custom_category_id')) {
+      context.handle(
+        _customCategoryIdMeta,
+        customCategoryId.isAcceptableOrUnknown(
+          data['custom_category_id']!,
+          _customCategoryIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1332,6 +1417,10 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
         DriftSqlType.double,
         data['${effectivePrefix}monthly_limit'],
       )!,
+      customCategoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}custom_category_id'],
+      ),
     );
   }
 
@@ -1348,10 +1437,12 @@ class Budget extends DataClass implements Insertable<Budget> {
   final int id;
   final TransactionCategory category;
   final double monthlyLimit;
+  final int? customCategoryId;
   const Budget({
     required this.id,
     required this.category,
     required this.monthlyLimit,
+    this.customCategoryId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1363,6 +1454,9 @@ class Budget extends DataClass implements Insertable<Budget> {
       );
     }
     map['monthly_limit'] = Variable<double>(monthlyLimit);
+    if (!nullToAbsent || customCategoryId != null) {
+      map['custom_category_id'] = Variable<int>(customCategoryId);
+    }
     return map;
   }
 
@@ -1371,6 +1465,9 @@ class Budget extends DataClass implements Insertable<Budget> {
       id: Value(id),
       category: Value(category),
       monthlyLimit: Value(monthlyLimit),
+      customCategoryId: customCategoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customCategoryId),
     );
   }
 
@@ -1385,6 +1482,7 @@ class Budget extends DataClass implements Insertable<Budget> {
         serializer.fromJson<int>(json['category']),
       ),
       monthlyLimit: serializer.fromJson<double>(json['monthlyLimit']),
+      customCategoryId: serializer.fromJson<int?>(json['customCategoryId']),
     );
   }
   @override
@@ -1396,6 +1494,7 @@ class Budget extends DataClass implements Insertable<Budget> {
         $BudgetsTable.$convertercategory.toJson(category),
       ),
       'monthlyLimit': serializer.toJson<double>(monthlyLimit),
+      'customCategoryId': serializer.toJson<int?>(customCategoryId),
     };
   }
 
@@ -1403,10 +1502,14 @@ class Budget extends DataClass implements Insertable<Budget> {
     int? id,
     TransactionCategory? category,
     double? monthlyLimit,
+    Value<int?> customCategoryId = const Value.absent(),
   }) => Budget(
     id: id ?? this.id,
     category: category ?? this.category,
     monthlyLimit: monthlyLimit ?? this.monthlyLimit,
+    customCategoryId: customCategoryId.present
+        ? customCategoryId.value
+        : this.customCategoryId,
   );
   Budget copyWithCompanion(BudgetsCompanion data) {
     return Budget(
@@ -1415,6 +1518,9 @@ class Budget extends DataClass implements Insertable<Budget> {
       monthlyLimit: data.monthlyLimit.present
           ? data.monthlyLimit.value
           : this.monthlyLimit,
+      customCategoryId: data.customCategoryId.present
+          ? data.customCategoryId.value
+          : this.customCategoryId,
     );
   }
 
@@ -1423,46 +1529,53 @@ class Budget extends DataClass implements Insertable<Budget> {
     return (StringBuffer('Budget(')
           ..write('id: $id, ')
           ..write('category: $category, ')
-          ..write('monthlyLimit: $monthlyLimit')
+          ..write('monthlyLimit: $monthlyLimit, ')
+          ..write('customCategoryId: $customCategoryId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, category, monthlyLimit);
+  int get hashCode => Object.hash(id, category, monthlyLimit, customCategoryId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Budget &&
           other.id == this.id &&
           other.category == this.category &&
-          other.monthlyLimit == this.monthlyLimit);
+          other.monthlyLimit == this.monthlyLimit &&
+          other.customCategoryId == this.customCategoryId);
 }
 
 class BudgetsCompanion extends UpdateCompanion<Budget> {
   final Value<int> id;
   final Value<TransactionCategory> category;
   final Value<double> monthlyLimit;
+  final Value<int?> customCategoryId;
   const BudgetsCompanion({
     this.id = const Value.absent(),
     this.category = const Value.absent(),
     this.monthlyLimit = const Value.absent(),
+    this.customCategoryId = const Value.absent(),
   });
   BudgetsCompanion.insert({
     this.id = const Value.absent(),
     required TransactionCategory category,
     required double monthlyLimit,
+    this.customCategoryId = const Value.absent(),
   }) : category = Value(category),
        monthlyLimit = Value(monthlyLimit);
   static Insertable<Budget> custom({
     Expression<int>? id,
     Expression<int>? category,
     Expression<double>? monthlyLimit,
+    Expression<int>? customCategoryId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (category != null) 'category': category,
       if (monthlyLimit != null) 'monthly_limit': monthlyLimit,
+      if (customCategoryId != null) 'custom_category_id': customCategoryId,
     });
   }
 
@@ -1470,11 +1583,13 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     Value<int>? id,
     Value<TransactionCategory>? category,
     Value<double>? monthlyLimit,
+    Value<int?>? customCategoryId,
   }) {
     return BudgetsCompanion(
       id: id ?? this.id,
       category: category ?? this.category,
       monthlyLimit: monthlyLimit ?? this.monthlyLimit,
+      customCategoryId: customCategoryId ?? this.customCategoryId,
     );
   }
 
@@ -1492,6 +1607,9 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     if (monthlyLimit.present) {
       map['monthly_limit'] = Variable<double>(monthlyLimit.value);
     }
+    if (customCategoryId.present) {
+      map['custom_category_id'] = Variable<int>(customCategoryId.value);
+    }
     return map;
   }
 
@@ -1500,7 +1618,8 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     return (StringBuffer('BudgetsCompanion(')
           ..write('id: $id, ')
           ..write('category: $category, ')
-          ..write('monthlyLimit: $monthlyLimit')
+          ..write('monthlyLimit: $monthlyLimit, ')
+          ..write('customCategoryId: $customCategoryId')
           ..write(')'))
         .toString();
   }
@@ -2152,12 +2271,14 @@ typedef $$AppRulesTableCreateCompanionBuilder =
       Value<int> id,
       required String merchantRegex,
       required TransactionCategory assignedCategory,
+      Value<int?> customCategoryId,
     });
 typedef $$AppRulesTableUpdateCompanionBuilder =
     AppRulesCompanion Function({
       Value<int> id,
       Value<String> merchantRegex,
       Value<TransactionCategory> assignedCategory,
+      Value<int?> customCategoryId,
     });
 
 class $$AppRulesTableFilterComposer
@@ -2184,6 +2305,11 @@ class $$AppRulesTableFilterComposer
     column: $table.assignedCategory,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$AppRulesTableOrderingComposer
@@ -2209,6 +2335,11 @@ class $$AppRulesTableOrderingComposer
     column: $table.assignedCategory,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AppRulesTableAnnotationComposer
@@ -2231,6 +2362,11 @@ class $$AppRulesTableAnnotationComposer
   GeneratedColumnWithTypeConverter<TransactionCategory, int>
   get assignedCategory => $composableBuilder(
     column: $table.assignedCategory,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
     builder: (column) => column,
   );
 }
@@ -2267,20 +2403,24 @@ class $$AppRulesTableTableManager
                 Value<String> merchantRegex = const Value.absent(),
                 Value<TransactionCategory> assignedCategory =
                     const Value.absent(),
+                Value<int?> customCategoryId = const Value.absent(),
               }) => AppRulesCompanion(
                 id: id,
                 merchantRegex: merchantRegex,
                 assignedCategory: assignedCategory,
+                customCategoryId: customCategoryId,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String merchantRegex,
                 required TransactionCategory assignedCategory,
+                Value<int?> customCategoryId = const Value.absent(),
               }) => AppRulesCompanion.insert(
                 id: id,
                 merchantRegex: merchantRegex,
                 assignedCategory: assignedCategory,
+                customCategoryId: customCategoryId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2478,12 +2618,14 @@ typedef $$BudgetsTableCreateCompanionBuilder =
       Value<int> id,
       required TransactionCategory category,
       required double monthlyLimit,
+      Value<int?> customCategoryId,
     });
 typedef $$BudgetsTableUpdateCompanionBuilder =
     BudgetsCompanion Function({
       Value<int> id,
       Value<TransactionCategory> category,
       Value<double> monthlyLimit,
+      Value<int?> customCategoryId,
     });
 
 class $$BudgetsTableFilterComposer
@@ -2508,6 +2650,11 @@ class $$BudgetsTableFilterComposer
 
   ColumnFilters<double> get monthlyLimit => $composableBuilder(
     column: $table.monthlyLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2535,6 +2682,11 @@ class $$BudgetsTableOrderingComposer
     column: $table.monthlyLimit,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BudgetsTableAnnotationComposer
@@ -2554,6 +2706,11 @@ class $$BudgetsTableAnnotationComposer
 
   GeneratedColumn<double> get monthlyLimit => $composableBuilder(
     column: $table.monthlyLimit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get customCategoryId => $composableBuilder(
+    column: $table.customCategoryId,
     builder: (column) => column,
   );
 }
@@ -2589,20 +2746,24 @@ class $$BudgetsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<TransactionCategory> category = const Value.absent(),
                 Value<double> monthlyLimit = const Value.absent(),
+                Value<int?> customCategoryId = const Value.absent(),
               }) => BudgetsCompanion(
                 id: id,
                 category: category,
                 monthlyLimit: monthlyLimit,
+                customCategoryId: customCategoryId,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required TransactionCategory category,
                 required double monthlyLimit,
+                Value<int?> customCategoryId = const Value.absent(),
               }) => BudgetsCompanion.insert(
                 id: id,
                 category: category,
                 monthlyLimit: monthlyLimit,
+                customCategoryId: customCategoryId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

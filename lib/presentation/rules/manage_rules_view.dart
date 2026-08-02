@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:ai_expense_tracker/domain/models/app_rule.dart' as domain;
 import 'package:ai_expense_tracker/domain/models/enums.dart';
-import 'package:ai_expense_tracker/data/database.dart';
+import 'package:ai_expense_tracker/data/database.dart' hide CustomCategory;
 import 'package:ai_expense_tracker/data/repositories/app_rule_repository_impl.dart';
 import 'package:ai_expense_tracker/domain/services/category_colors.dart';
+import 'package:ai_expense_tracker/domain/models/custom_category.dart';
+import 'package:ai_expense_tracker/data/repositories/custom_category_repository_impl.dart';
 
 class ManageRulesView extends StatefulWidget {
   const ManageRulesView({super.key});
@@ -14,8 +16,10 @@ class ManageRulesView extends StatefulWidget {
 
 class _ManageRulesViewState extends State<ManageRulesView> {
   final _ruleRepo = AppRuleRepositoryImpl(AppDatabase.instance);
+  final _customCategoryRepo = CustomCategoryRepositoryImpl(AppDatabase.instance);
   
   List<domain.AppRule> _rules = [];
+  List<CustomCategory> _customCategories = [];
   bool _isLoading = true;
 
   @override
@@ -27,9 +31,11 @@ class _ManageRulesViewState extends State<ManageRulesView> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final rules = await _ruleRepo.getAllRules();
+    final customCats = await _customCategoryRepo.getAllCustomCategories();
     
     setState(() {
       _rules = rules;
+      _customCategories = customCats;
       _isLoading = false;
     });
   }
@@ -63,7 +69,7 @@ class _ManageRulesViewState extends State<ManageRulesView> {
 
   void _showAddEditDialog([domain.AppRule? rule]) {
     final patternController = TextEditingController(text: rule?.merchantRegex ?? '');
-    TransactionCategory? selectedCategory = rule?.assignedCategory;
+    String? selectedCategoryKey = rule != null ? (rule.customCategoryId != null ? 'custom:${rule.customCategoryId}' : 'enum:${rule.assignedCategory.name}') : null;
 
     showDialog(
       context: context,
@@ -83,17 +89,25 @@ class _ManageRulesViewState extends State<ManageRulesView> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<TransactionCategory>(
-                      initialValue: selectedCategory,
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedCategoryKey,
                       decoration: const InputDecoration(labelText: "Category"),
-                      items: TransactionCategory.values.map((cat) {
-                        return DropdownMenuItem(
-                          value: cat,
-                          child: Text(cat.name.replaceFirst(cat.name[0], cat.name[0].toUpperCase())),
-                        );
-                      }).toList(),
+                      items: [
+                        ...TransactionCategory.values.map((cat) {
+                          return DropdownMenuItem(
+                            value: 'enum:${cat.name}',
+                            child: Text(cat.name.replaceFirst(cat.name[0], cat.name[0].toUpperCase())),
+                          );
+                        }),
+                        ..._customCategories.map((cat) {
+                          return DropdownMenuItem(
+                            value: 'custom:${cat.id}',
+                            child: Text(cat.name),
+                          );
+                        }),
+                      ],
                       onChanged: (val) {
-                        setDialogState(() => selectedCategory = val);
+                        setDialogState(() => selectedCategoryKey = val);
                       },
                     ),
                   ],
@@ -106,14 +120,19 @@ class _ManageRulesViewState extends State<ManageRulesView> {
                 ),
                 TextButton(
                   onPressed: () async {
-                    if (selectedCategory == null) return;
+                    if (selectedCategoryKey == null) return;
                     final pattern = patternController.text.trim();
                     if (pattern.isEmpty) return;
+
+                    bool isCustom = selectedCategoryKey!.startsWith('custom:');
+                    TransactionCategory cat = isCustom ? TransactionCategory.other : TransactionCategory.values.firstWhere((e) => 'enum:${e.name}' == selectedCategoryKey);
+                    int? customId = isCustom ? int.parse(selectedCategoryKey!.substring(7)) : null;
 
                     final newRule = domain.AppRule(
                       id: rule?.id ?? 0,
                       merchantRegex: pattern,
-                      assignedCategory: selectedCategory!,
+                      assignedCategory: cat,
+                      customCategoryId: customId,
                     );
 
                     if (rule == null) {
@@ -165,7 +184,16 @@ class _ManageRulesViewState extends State<ManageRulesView> {
                 itemCount: _rules.length,
                 itemBuilder: (context, index) {
                   final rule = _rules[index];
-                  final catColor = categoryColor(rule.assignedCategory);
+                  
+                  Color catColor = categoryColor(rule.assignedCategory);
+                  String catName = rule.assignedCategory.name.toUpperCase();
+                  if (rule.customCategoryId != null) {
+                    final custom = _customCategories.where((c) => c.id == rule.customCategoryId).firstOrNull;
+                    if (custom != null) {
+                      catColor = Color(custom.colorValue);
+                      catName = custom.name.toUpperCase();
+                    }
+                  }
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
@@ -189,7 +217,7 @@ class _ManageRulesViewState extends State<ManageRulesView> {
                                 border: Border.all(color: catColor),
                               ),
                               child: Text(
-                                rule.assignedCategory.name.toUpperCase(),
+                                catName,
                                 style: TextStyle(color: catColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                               ),
                             ),
