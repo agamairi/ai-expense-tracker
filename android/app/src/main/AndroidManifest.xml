@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <application
         android:label="BAInk"
         android:name=".ExpenseTrackerApplication"
@@ -36,10 +38,14 @@
         <service android:name=".ExpenseNotificationService"
                  android:label="Expense Notification Listener"
                  android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+                 android:foregroundServiceType="specialUse"
                  android:exported="true">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Listening for bank/transaction notifications to auto-log expenses even when the app UI is closed" />
         </service>
         <receiver android:name=".NotificationActionReceiver" android:exported="false">
             <intent-filter>
